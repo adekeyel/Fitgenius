@@ -1,0 +1,885 @@
+import { useState, useEffect, useRef } from "react";
+
+const COLORS = {
+  bg: "#0A0705",
+  surface: "#130E0A",
+  card: "#1C1410",
+  border: "#2E2018",
+  gold: "#C9973A",
+  goldLight: "#E8B96A",
+  goldDim: "#7A5A1E",
+  terracotta: "#C4572A",
+  cream: "#F5ECD7",
+  creamDim: "#B8A888",
+  green: "#2D5A3D",
+  greenLight: "#4A8A5E",
+  text: "#F0E8D8",
+  muted: "#8A7560",
+};
+
+const GOOGLE_FONTS = `
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,800;1,400;1,600&family=DM+Sans:wght@300;400;500&family=Bebas+Neue&display=swap');
+`;
+
+const styles = `
+  ${GOOGLE_FONTS}
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: ${COLORS.bg}; color: ${COLORS.text}; font-family: 'DM Sans', sans-serif; }
+
+  .fitgenius { min-height: 100vh; background: ${COLORS.bg}; overflow-x: hidden; }
+
+  /* NAV */
+  .nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 40px;
+    background: linear-gradient(to bottom, rgba(10,7,5,0.98), transparent);
+    backdrop-filter: blur(2px);
+  }
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px; letter-spacing: 3px;
+    color: ${COLORS.gold};
+  }
+  .nav-logo span { color: ${COLORS.cream}; }
+  .nav-links { display: flex; gap: 32px; align-items: center; }
+  .nav-link {
+    font-size: 13px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase;
+    color: ${COLORS.muted}; cursor: pointer; transition: color 0.2s;
+    background: none; border: none;
+  }
+  .nav-link:hover { color: ${COLORS.cream}; }
+  .nav-cta {
+    background: ${COLORS.gold}; color: ${COLORS.bg};
+    border: none; padding: 10px 22px; border-radius: 2px;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .nav-cta:hover { background: ${COLORS.goldLight}; }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh; display: flex; flex-direction: column;
+    justify-content: center; padding: 120px 40px 80px;
+    position: relative; overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 60% 60% at 80% 40%, rgba(201,151,58,0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 20% 70%, rgba(196,87,42,0.06) 0%, transparent 60%);
+  }
+  .hero-pattern {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0.03;
+    background-image: repeating-linear-gradient(
+      45deg, ${COLORS.gold} 0, ${COLORS.gold} 1px, transparent 0, transparent 50%
+    );
+    background-size: 20px 20px;
+  }
+  .hero-eyebrow {
+    font-size: 11px; letter-spacing: 4px; text-transform: uppercase;
+    color: ${COLORS.gold}; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .hero-eyebrow::before {
+    content: ''; display: block; width: 40px; height: 1px; background: ${COLORS.goldDim};
+  }
+  .hero-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(52px, 8vw, 96px);
+    font-weight: 800; line-height: 0.95;
+    color: ${COLORS.cream};
+    max-width: 800px;
+  }
+  .hero-title em {
+    font-style: italic; color: ${COLORS.gold};
+    display: block;
+  }
+  .hero-sub {
+    margin-top: 28px; font-size: 17px; font-weight: 300;
+    color: ${COLORS.creamDim}; max-width: 480px; line-height: 1.7;
+  }
+  .hero-actions { display: flex; gap: 14px; margin-top: 40px; flex-wrap: wrap; }
+  .btn-primary {
+    background: ${COLORS.gold}; color: ${COLORS.bg};
+    border: none; padding: 16px 32px; border-radius: 2px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+    letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary:hover { background: ${COLORS.goldLight}; transform: translateY(-1px); }
+  .btn-outline {
+    background: transparent; color: ${COLORS.cream};
+    border: 1px solid ${COLORS.border}; padding: 16px 32px; border-radius: 2px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+    letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-outline:hover { border-color: ${COLORS.gold}; color: ${COLORS.gold}; }
+  .hero-stats {
+    display: flex; gap: 48px; margin-top: 64px;
+    padding-top: 40px; border-top: 1px solid ${COLORS.border};
+  }
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif; font-size: 42px;
+    color: ${COLORS.gold}; line-height: 1;
+  }
+  .stat-label { font-size: 12px; color: ${COLORS.muted}; letter-spacing: 1px; margin-top: 4px; }
+
+  /* REGISTER SECTION */
+  .register-section {
+    padding: 80px 40px; background: ${COLORS.surface};
+    border-top: 1px solid ${COLORS.border};
+    border-bottom: 1px solid ${COLORS.border};
+  }
+  .section-header { text-align: center; margin-bottom: 56px; }
+  .section-tag {
+    font-size: 11px; letter-spacing: 4px; text-transform: uppercase;
+    color: ${COLORS.gold}; margin-bottom: 14px;
+  }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(32px, 4vw, 52px); font-weight: 700;
+    color: ${COLORS.cream}; line-height: 1.15;
+  }
+  .section-title em { font-style: italic; color: ${COLORS.gold}; }
+
+  .role-tabs {
+    display: flex; justify-content: center; gap: 0; margin-bottom: 48px;
+    border: 1px solid ${COLORS.border}; border-radius: 4px;
+    width: fit-content; margin-left: auto; margin-right: auto;
+  }
+  .role-tab {
+    padding: 14px 40px; cursor: pointer; font-size: 13px;
+    font-weight: 500; letter-spacing: 1px; text-transform: uppercase;
+    background: none; border: none; color: ${COLORS.muted};
+    transition: all 0.2s; font-family: 'DM Sans', sans-serif;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .role-tab.active {
+    background: ${COLORS.gold}; color: ${COLORS.bg};
+  }
+
+  .register-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 960px; margin: 0 auto;
+  }
+  @media (max-width: 700px) { .register-grid { grid-template-columns: 1fr; } }
+
+  .register-card {
+    background: ${COLORS.card}; border: 1px solid ${COLORS.border};
+    border-radius: 4px; padding: 40px; position: relative; overflow: hidden;
+    cursor: pointer; transition: all 0.3s;
+  }
+  .register-card:hover { border-color: ${COLORS.goldDim}; transform: translateY(-3px); }
+  .register-card.selected { border-color: ${COLORS.gold}; }
+  .register-card.selected::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, ${COLORS.gold}, ${COLORS.terracotta});
+  }
+  .card-icon { font-size: 36px; margin-bottom: 16px; }
+  .card-title {
+    font-family: 'Playfair Display', serif; font-size: 24px; font-weight: 700;
+    color: ${COLORS.cream}; margin-bottom: 10px;
+  }
+  .card-desc { font-size: 14px; color: ${COLORS.muted}; line-height: 1.7; margin-bottom: 20px; }
+  .card-perks { display: flex; flex-direction: column; gap: 8px; }
+  .perk {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; color: ${COLORS.creamDim};
+  }
+  .perk-dot { width: 6px; height: 6px; border-radius: 50%; background: ${COLORS.gold}; flex-shrink: 0; }
+  .selected-badge {
+    position: absolute; top: 16px; right: 16px;
+    background: ${COLORS.gold}; color: ${COLORS.bg};
+    font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 2px;
+  }
+
+  /* REGISTER FORM */
+  .form-panel {
+    max-width: 560px; margin: 48px auto 0;
+    background: ${COLORS.card}; border: 1px solid ${COLORS.border};
+    border-radius: 4px; padding: 40px;
+    animation: fadeUp 0.4s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .form-title {
+    font-family: 'Playfair Display', serif; font-size: 22px;
+    color: ${COLORS.cream}; margin-bottom: 28px;
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: ${COLORS.muted}; display: block; margin-bottom: 8px; }
+  .form-input {
+    width: 100%; background: ${COLORS.surface}; border: 1px solid ${COLORS.border};
+    color: ${COLORS.text}; padding: 12px 16px; border-radius: 2px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .form-input:focus { border-color: ${COLORS.gold}; }
+  .form-input::placeholder { color: ${COLORS.muted}; }
+  .form-select {
+    width: 100%; background: ${COLORS.surface}; border: 1px solid ${COLORS.border};
+    color: ${COLORS.text}; padding: 12px 16px; border-radius: 2px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    outline: none; transition: border-color 0.2s; appearance: none;
+    cursor: pointer;
+  }
+  .form-select:focus { border-color: ${COLORS.gold}; }
+  .form-submit {
+    width: 100%; background: ${COLORS.gold}; color: ${COLORS.bg};
+    border: none; padding: 16px; border-radius: 2px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
+    margin-top: 8px; transition: background 0.2s;
+  }
+  .form-submit:hover { background: ${COLORS.goldLight}; }
+  .form-submit:disabled { background: ${COLORS.goldDim}; cursor: not-allowed; }
+
+  /* AI GENERATOR */
+  .ai-section { padding: 100px 40px; }
+  .ai-container { max-width: 1100px; margin: 0 auto; }
+  .ai-layout { display: grid; grid-template-columns: 1fr 1.2fr; gap: 60px; align-items: start; }
+  @media (max-width: 800px) { .ai-layout { grid-template-columns: 1fr; } }
+
+  .ai-panel {
+    background: ${COLORS.card}; border: 1px solid ${COLORS.border};
+    border-radius: 4px; padding: 36px;
+  }
+  .ai-panel-title {
+    font-family: 'Playfair Display', serif; font-size: 20px;
+    color: ${COLORS.cream}; margin-bottom: 24px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .ai-panel-title span { font-size: 22px; }
+
+  .tag-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .tag {
+    padding: 7px 14px; border-radius: 100px;
+    border: 1px solid ${COLORS.border}; font-size: 12px;
+    color: ${COLORS.muted}; cursor: pointer; transition: all 0.2s;
+    background: none; font-family: 'DM Sans', sans-serif;
+  }
+  .tag:hover { border-color: ${COLORS.goldDim}; color: ${COLORS.cream}; }
+  .tag.active { border-color: ${COLORS.gold}; background: rgba(201,151,58,0.1); color: ${COLORS.gold}; }
+
+  .upload-zone {
+    border: 2px dashed ${COLORS.border}; border-radius: 4px;
+    padding: 32px; text-align: center; cursor: pointer;
+    transition: all 0.2s; margin-bottom: 20px;
+  }
+  .upload-zone:hover { border-color: ${COLORS.goldDim}; background: rgba(201,151,58,0.02); }
+  .upload-icon { font-size: 32px; margin-bottom: 10px; }
+  .upload-text { font-size: 13px; color: ${COLORS.muted}; }
+  .upload-sub { font-size: 11px; color: ${COLORS.goldDim}; margin-top: 4px; }
+
+  .gen-btn {
+    width: 100%; background: linear-gradient(135deg, ${COLORS.gold}, ${COLORS.terracotta});
+    border: none; padding: 16px; border-radius: 2px; color: ${COLORS.bg};
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
+    transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .gen-btn:hover { opacity: 0.9; }
+  .gen-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* RESULTS */
+  .results-panel { display: flex; flex-direction: column; gap: 16px; }
+  .result-card {
+    background: ${COLORS.card}; border: 1px solid ${COLORS.border};
+    border-radius: 4px; overflow: hidden;
+  }
+  .result-img {
+    width: 100%; height: 280px; object-fit: cover;
+    background: linear-gradient(135deg, ${COLORS.surface}, ${COLORS.card});
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .result-img-placeholder {
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    color: ${COLORS.muted};
+  }
+  .result-img-placeholder .icon { font-size: 40px; opacity: 0.4; }
+  .result-img-placeholder .label { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
+
+  .generated-result {
+    border-radius: 4px; overflow: hidden;
+    border: 1px solid ${COLORS.goldDim};
+    animation: fadeUp 0.5s ease both;
+  }
+  .generated-header {
+    background: rgba(201,151,58,0.08); padding: 12px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid ${COLORS.border};
+  }
+  .gen-style-name { font-family: 'Playfair Display', serif; font-size: 16px; color: ${COLORS.goldLight}; }
+  .gen-badge {
+    font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+    background: rgba(201,151,58,0.15); color: ${COLORS.gold}; padding: 3px 8px; border-radius: 2px;
+  }
+  .generated-content { padding: 16px; }
+  .gen-desc { font-size: 13px; color: ${COLORS.creamDim}; line-height: 1.7; margin-bottom: 12px; }
+  .gen-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .gen-tag {
+    font-size: 11px; padding: 4px 10px; border-radius: 100px;
+    background: ${COLORS.surface}; color: ${COLORS.muted}; border: 1px solid ${COLORS.border};
+  }
+  .gen-actions { display: flex; gap: 10px; }
+  .gen-action {
+    flex: 1; padding: 10px; border-radius: 2px; font-size: 12px; font-weight: 500;
+    letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: all 0.2s;
+  }
+  .gen-action.primary { background: ${COLORS.gold}; color: ${COLORS.bg}; border: none; }
+  .gen-action.secondary { background: none; color: ${COLORS.muted}; border: 1px solid ${COLORS.border}; }
+  .gen-action:hover { opacity: 0.85; }
+
+  .loading-state {
+    padding: 48px; text-align: center;
+    background: ${COLORS.card}; border: 1px solid ${COLORS.border}; border-radius: 4px;
+    animation: fadeUp 0.3s ease both;
+  }
+  .loading-spinner {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 2px solid ${COLORS.border}; border-top-color: ${COLORS.gold};
+    animation: spin 0.8s linear infinite; margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 13px; color: ${COLORS.muted}; letter-spacing: 1px; }
+
+  /* TAILORS SECTION */
+  .tailors-section { padding: 100px 40px; background: ${COLORS.surface}; border-top: 1px solid ${COLORS.border}; }
+  .tailors-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1000px; margin: 48px auto 0; }
+  @media (max-width: 700px) { .tailors-grid { grid-template-columns: 1fr; } }
+
+  .tailor-card {
+    background: ${COLORS.card}; border: 1px solid ${COLORS.border};
+    border-radius: 4px; padding: 28px; transition: all 0.3s; cursor: pointer;
+  }
+  .tailor-card:hover { border-color: ${COLORS.goldDim}; transform: translateY(-4px); }
+  .tailor-avatar {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, ${COLORS.goldDim}, ${COLORS.terracotta});
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; margin-bottom: 14px;
+  }
+  .tailor-name { font-family: 'Playfair Display', serif; font-size: 18px; color: ${COLORS.cream}; margin-bottom: 4px; }
+  .tailor-location { font-size: 12px; color: ${COLORS.muted}; margin-bottom: 12px; }
+  .tailor-stars { color: ${COLORS.gold}; font-size: 13px; margin-bottom: 10px; }
+  .tailor-spec { font-size: 12px; color: ${COLORS.muted}; }
+  .tailor-spec span { color: ${COLORS.goldLight}; }
+  .tailor-price {
+    margin-top: 16px; padding-top: 16px; border-top: 1px solid ${COLORS.border};
+    font-size: 13px; color: ${COLORS.creamDim};
+  }
+  .tailor-price strong { color: ${COLORS.gold}; font-size: 16px; }
+
+  /* FOOTER */
+  .footer {
+    padding: 60px 40px 40px;
+    border-top: 1px solid ${COLORS.border};
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: gap;
+  }
+  .footer-logo {
+    font-family: 'Bebas Neue', sans-serif; font-size: 24px;
+    color: ${COLORS.gold}; letter-spacing: 3px;
+  }
+  .footer-tagline { font-size: 12px; color: ${COLORS.muted}; margin-top: 4px; }
+  .footer-links { display: flex; gap: 24px; flex-wrap: wrap; }
+  .footer-link { font-size: 12px; color: ${COLORS.muted}; cursor: pointer; }
+  .footer-link:hover { color: ${COLORS.cream}; }
+
+  /* SUCCESS */
+  .success-banner {
+    background: rgba(45,90,61,0.2); border: 1px solid rgba(74,138,94,0.4);
+    border-radius: 4px; padding: 16px 20px; margin-top: 20px;
+    display: flex; align-items: center; gap: 12px;
+    animation: fadeUp 0.3s ease both;
+  }
+  .success-icon { font-size: 20px; }
+  .success-text { font-size: 14px; color: #7DCF9A; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 32px; right: 32px; z-index: 999;
+    background: ${COLORS.gold}; color: ${COLORS.bg};
+    padding: 14px 24px; border-radius: 2px; font-size: 14px; font-weight: 500;
+    animation: slideIn 0.3s ease both;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(30px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+`;
+
+const SAMPLE_TAILORS = [
+  { id: 1, name: "Amara Osei", location: "Lagos, Nigeria", rating: "★★★★★", specialty: "Ankara & Bridal", price: "₦15,000", emoji: "👗" },
+  { id: 2, name: "Kwame Asante", location: "Accra, Ghana", rating: "★★★★☆", specialty: "Agbada & Senator", price: "₦12,000", emoji: "👔" },
+  { id: 3, name: "Fatima Diallo", location: "Nairobi, Kenya", rating: "★★★★★", specialty: "Aso-ebi & Gele", price: "₦18,000", emoji: "🎀" },
+];
+
+const OCCASIONS = ["Wedding", "Party", "Corporate", "Casual", "Burial", "Graduation", "Festival"];
+const FABRICS = ["Ankara", "Senator", "Lace", "Kente", "Adire", "George", "Chiffon", "Velvet"];
+const GENDERS = ["Female", "Male", "Unisex"];
+
+function AIStyleGenerator() {
+  const [selectedOccasion, setSelectedOccasion] = useState(null);
+  const [selectedFabric, setSelectedFabric] = useState(null);
+  const [selectedGender, setSelectedGender] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [uploadedImage, setUploadedImage] = useState(null);
+  const fileRef = useRef();
+
+  const canGenerate = selectedOccasion && selectedFabric && selectedGender;
+
+  async function handleGenerate() {
+    if (!canGenerate) return;
+    setLoading(true);
+    setResult(null);
+    try {
+      const prompt = `You are FitGenius AI, an expert African fashion stylist. A user wants style recommendations.
+Details:
+- Fabric: ${selectedFabric}
+- Occasion: ${selectedOccasion}
+- Gender: ${selectedGender}
+${uploadedImage ? "- They uploaded a fabric/color swatch image" : ""}
+
+Respond with ONLY valid JSON (no markdown, no backticks) in this exact format:
+{
+  "styleName": "Name of the recommended style",
+  "description": "2-3 sentences describing the style, how it fits the occasion, and cultural significance",
+  "styleVariants": ["variant 1", "variant 2", "variant 3"],
+  "colorSuggestions": ["color 1", "color 2", "color 3"],
+  "accessorySuggestions": ["accessory 1", "accessory 2"],
+  "estimatedFabric": "X yards",
+  "tailoringTip": "One practical tailoring tip"
+}`;
+
+      const messages = uploadedImage
+        ? [{ role: "user", content: [
+            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: uploadedImage } },
+            { type: "text", text: prompt }
+          ]}]
+        : [{ role: "user", content: prompt }];
+
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, messages }),
+      });
+      const data = await res.json();
+      const text = data.content?.map(i => i.text || "").join("") || "";
+      const clean = text.replace(/```json|```/g, "").trim();
+      const parsed = JSON.parse(clean);
+      setResult(parsed);
+    } catch (e) {
+      setResult({ error: true });
+    }
+    setLoading(false);
+  }
+
+  function handleFileChange(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => setUploadedImage(ev.target.result.split(",")[1]);
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <div className="ai-layout">
+      <div>
+        <div className="ai-panel">
+          <div className="ai-panel-title"><span>✨</span> AI Style Generator</div>
+
+          <label className="form-label">Fabric Type</label>
+          <div className="tag-grid">
+            {FABRICS.map(f => (
+              <button key={f} className={`tag ${selectedFabric === f ? "active" : ""}`}
+                onClick={() => setSelectedFabric(f)}>{f}</button>
+            ))}
+          </div>
+
+          <label className="form-label" style={{marginTop:16}}>Occasion</label>
+          <div className="tag-grid">
+            {OCCASIONS.map(o => (
+              <button key={o} className={`tag ${selectedOccasion === o ? "active" : ""}`}
+                onClick={() => setSelectedOccasion(o)}>{o}</button>
+            ))}
+          </div>
+
+          <label className="form-label" style={{marginTop:16}}>Gender</label>
+          <div className="tag-grid">
+            {GENDERS.map(g => (
+              <button key={g} className={`tag ${selectedGender === g ? "active" : ""}`}
+                onClick={() => setSelectedGender(g)}>{g}</button>
+            ))}
+          </div>
+
+          <div className="upload-zone" onClick={() => fileRef.current.click()} style={{marginTop:20}}>
+            {uploadedImage
+              ? <><div className="upload-icon">🖼️</div><div className="upload-text" style={{color:"#C9973A"}}>Fabric image uploaded ✓</div></>
+              : <><div className="upload-icon">📷</div><div className="upload-text">Upload fabric image (optional)</div><div className="upload-sub">JPG, PNG — AI will analyze your fabric</div></>
+            }
+          </div>
+          <input ref={fileRef} type="file" accept="image/*" style={{display:"none"}} onChange={handleFileChange} />
+
+          <button className="gen-btn" onClick={handleGenerate} disabled={!canGenerate || loading}>
+            {loading ? "⟳ Generating..." : "✦ Generate Style"}
+          </button>
+          {!canGenerate && <p style={{fontSize:11,color:"#5A4A3A",textAlign:"center",marginTop:10,letterSpacing:1}}>Select fabric, occasion & gender to generate</p>}
+        </div>
+      </div>
+
+      <div className="results-panel">
+        {!loading && !result && (
+          <div className="result-card">
+            <div className="result-img">
+              <div className="result-img-placeholder">
+                <div className="icon">🪡</div>
+                <div className="label">Your style preview appears here</div>
+              </div>
+            </div>
+            <div style={{padding:"16px",borderTop:`1px solid ${COLORS.border}`}}>
+              <p style={{fontSize:13,color:COLORS.muted,lineHeight:1.7}}>
+                Select your fabric, occasion, and gender above — FitGenius AI will generate matching style recommendations, color combinations, and tailoring guidance.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {loading && (
+          <div className="loading-state">
+            <div className="loading-spinner"></div>
+            <div className="loading-text">GENERATING YOUR STYLE...</div>
+            <p style={{fontSize:12,color:COLORS.goldDim,marginTop:8}}>Analyzing {selectedFabric} for {selectedOccasion}</p>
+          </div>
+        )}
+
+        {result && !result.error && (
+          <div className="generated-result">
+            <div className="generated-header">
+              <div className="gen-style-name">{result.styleName}</div>
+              <div className="gen-badge">AI Generated</div>
+            </div>
+            <div className="generated-content">
+              <p className="gen-desc">{result.description}</p>
+
+              {result.styleVariants?.length > 0 && <>
+                <p style={{fontSize:11,letterSpacing:1,textTransform:"uppercase",color:COLORS.muted,marginBottom:8}}>Style Variants</p>
+                <div className="gen-tags" style={{marginBottom:16}}>
+                  {result.styleVariants.map((v,i) => <span key={i} className="gen-tag">{v}</span>)}
+                </div>
+              </>}
+
+              {result.colorSuggestions?.length > 0 && <>
+                <p style={{fontSize:11,letterSpacing:1,textTransform:"uppercase",color:COLORS.muted,marginBottom:8}}>Color Suggestions</p>
+                <div className="gen-tags" style={{marginBottom:16}}>
+                  {result.colorSuggestions.map((c,i) => <span key={i} className="gen-tag" style={{borderColor:COLORS.goldDim}}>🎨 {c}</span>)}
+                </div>
+              </>}
+
+              {result.accessorySuggestions?.length > 0 && <>
+                <p style={{fontSize:11,letterSpacing:1,textTransform:"uppercase",color:COLORS.muted,marginBottom:8}}>Accessories</p>
+                <div className="gen-tags" style={{marginBottom:16}}>
+                  {result.accessorySuggestions.map((a,i) => <span key={i} className="gen-tag">✦ {a}</span>)}
+                </div>
+              </>}
+
+              <div style={{background:COLORS.surface,borderRadius:2,padding:"12px 16px",marginBottom:16,borderLeft:`3px solid ${COLORS.gold}`}}>
+                <p style={{fontSize:11,letterSpacing:1,textTransform:"uppercase",color:COLORS.goldDim,marginBottom:6}}>Tailor's Tip</p>
+                <p style={{fontSize:13,color:COLORS.creamDim,lineHeight:1.6}}>{result.tailoringTip}</p>
+              </div>
+
+              {result.estimatedFabric && (
+                <p style={{fontSize:12,color:COLORS.muted,marginBottom:16}}>📏 Estimated fabric needed: <span style={{color:COLORS.gold}}>{result.estimatedFabric}</span></p>
+              )}
+
+              <div className="gen-actions">
+                <button className="gen-action primary">Book a Tailor</button>
+                <button className="gen-action secondary">Save Style</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {result?.error && (
+          <div style={{padding:32,textAlign:"center",background:COLORS.card,border:`1px solid ${COLORS.border}`,borderRadius:4}}>
+            <p style={{color:COLORS.muted,fontSize:14}}>Couldn't generate style. Please try again.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RegisterForm({ role }) {
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({ name:"", email:"", phone:"", specialty:"", city:"", password:"" });
+
+  function update(k, v) { setForm(p => ({...p, [k]: v})); }
+
+  async function handleSubmit() {
+    if (!form.name || !form.email) return;
+    setLoading(true);
+    await new Promise(r => setTimeout(r, 1200));
+    setLoading(false);
+    setSubmitted(true);
+  }
+
+  if (submitted) return (
+    <div className="form-panel">
+      <div style={{textAlign:"center",padding:"20px 0"}}>
+        <div style={{fontSize:48,marginBottom:16}}>🎉</div>
+        <div className="form-title" style={{textAlign:"center"}}>Welcome to FitGenius!</div>
+        <p style={{fontSize:14,color:COLORS.muted,lineHeight:1.7,marginBottom:24}}>
+          {role === "customer"
+            ? "Your account is ready. Start exploring AI-generated styles and connect with talented tailors."
+            : "Your tailor profile is under review. You'll receive an email within 24 hours to complete setup."}
+        </p>
+        <button className="form-submit" onClick={() => setSubmitted(false)} style={{width:"auto",padding:"14px 32px"}}>
+          {role === "customer" ? "Explore Styles →" : "View Dashboard →"}
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="form-panel">
+      <div className="form-title">
+        {role === "customer" ? "Create Customer Account" : "Register as a Tailor"}
+      </div>
+
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Full Name</label>
+          <input className="form-input" placeholder="Your name" value={form.name} onChange={e => update("name", e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Phone Number</label>
+          <input className="form-input" placeholder="+234 801 234 5678" value={form.phone} onChange={e => update("phone", e.target.value)} />
+        </div>
+      </div>
+
+      <div className="form-group">
+        <label className="form-label">Email Address</label>
+        <input className="form-input" type="email" placeholder="your@email.com" value={form.email} onChange={e => update("email", e.target.value)} />
+      </div>
+
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">City</label>
+          <select className="form-select" value={form.city} onChange={e => update("city", e.target.value)}>
+            <option value="">Select city</option>
+            <option>Lagos</option><option>Abuja</option><option>Accra</option>
+            <option>Nairobi</option><option>Kano</option><option>Port Harcourt</option>
+          </select>
+        </div>
+        {role === "tailor" && (
+          <div className="form-group">
+            <label className="form-label">Specialty</label>
+            <select className="form-select" value={form.specialty} onChange={e => update("specialty", e.target.value)}>
+              <option value="">Select specialty</option>
+              <option>Ankara & Prints</option><option>Bridal & Wedding</option>
+              <option>Senator & Native</option><option>Lace & Aso-ebi</option>
+              <option>Kente & Traditional</option>
+            </select>
+          </div>
+        )}
+        {role === "customer" && (
+          <div className="form-group">
+            <label className="form-label">Gender</label>
+            <select className="form-select" value={form.specialty} onChange={e => update("specialty", e.target.value)}>
+              <option value="">Select</option>
+              <option>Female</option><option>Male</option><option>Non-binary</option>
+            </select>
+          </div>
+        )}
+      </div>
+
+      <div className="form-group">
+        <label className="form-label">Password</label>
+        <input className="form-input" type="password" placeholder="Create a password" value={form.password} onChange={e => update("password", e.target.value)} />
+      </div>
+
+      <button className="form-submit" onClick={handleSubmit} disabled={loading || !form.name || !form.email}>
+        {loading ? "Creating Account..." : role === "customer" ? "Join as Customer →" : "Register as Tailor →"}
+      </button>
+
+      <p style={{fontSize:12,color:COLORS.muted,textAlign:"center",marginTop:16,lineHeight:1.6}}>
+        By registering you agree to our Terms of Service and Privacy Policy
+      </p>
+    </div>
+  );
+}
+
+export default function FitGenius() {
+  const [activeTab, setActiveTab] = useState("customer");
+  const [selectedRole, setSelectedRole] = useState(null);
+  const [showToast, setShowToast] = useState(false);
+  const [currentSection, setCurrentSection] = useState("home");
+
+  function scrollTo(id) {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    setCurrentSection(id);
+  }
+
+  function handleRoleSelect(role) {
+    setSelectedRole(role);
+    setActiveTab(role);
+    setTimeout(() => document.getElementById("reg-form")?.scrollIntoView({ behavior: "smooth" }), 100);
+  }
+
+  return (
+    <>
+      <style>{styles}</style>
+      <div className="fitgenius">
+        {/* NAV */}
+        <nav className="nav">
+          <div className="nav-logo">FIT<span>GENIUS</span></div>
+          <div className="nav-links">
+            <button className="nav-link" onClick={() => scrollTo("styles")}>Styles</button>
+            <button className="nav-link" onClick={() => scrollTo("tailors")}>Tailors</button>
+            <button className="nav-link" onClick={() => scrollTo("register")}>Register</button>
+            <button className="nav-cta" onClick={() => scrollTo("register")}>Get Started</button>
+          </div>
+        </nav>
+
+        {/* HERO */}
+        <section className="hero">
+          <div className="hero-bg"></div>
+          <div className="hero-pattern"></div>
+          <div className="hero-eyebrow">AI-Powered African Fashion</div>
+          <h1 className="hero-title">
+            Where Style
+            <em>Meets Intelligence</em>
+          </h1>
+          <p className="hero-sub">
+            Generate stunning African fashion styles with AI, connect with skilled tailors, and bring your vision to life — all in one platform.
+          </p>
+          <div className="hero-actions">
+            <button className="btn-primary" onClick={() => scrollTo("styles")}>Generate My Style</button>
+            <button className="btn-outline" onClick={() => scrollTo("tailors")}>Find a Tailor</button>
+          </div>
+          <div className="hero-stats">
+            <div><div className="stat-num">2,400+</div><div className="stat-label">Verified Tailors</div></div>
+            <div><div className="stat-num">18K+</div><div className="stat-label">Styles Generated</div></div>
+            <div><div className="stat-num">3</div><div className="stat-label">Countries</div></div>
+          </div>
+        </section>
+
+        {/* REGISTER */}
+        <section className="register-section" id="register">
+          <div className="section-header">
+            <div className="section-tag">Join FitGenius</div>
+            <h2 className="section-title">Choose Your <em>Role</em></h2>
+          </div>
+
+          <div className="role-tabs">
+            <button className={`role-tab ${activeTab === "customer" ? "active" : ""}`}
+              onClick={() => { setActiveTab("customer"); setSelectedRole("customer"); }}>
+              🛍️ Customer
+            </button>
+            <button className={`role-tab ${activeTab === "tailor" ? "active" : ""}`}
+              onClick={() => { setActiveTab("tailor"); setSelectedRole("tailor"); }}>
+              ✂️ Tailor / Designer
+            </button>
+          </div>
+
+          <div className="register-grid">
+            <div className={`register-card ${selectedRole === "customer" ? "selected" : ""}`}
+              onClick={() => handleRoleSelect("customer")}>
+              {selectedRole === "customer" && <div className="selected-badge">Selected</div>}
+              <div className="card-icon">🛍️</div>
+              <div className="card-title">I'm a Customer</div>
+              <div className="card-desc">Discover AI-generated styles, find skilled tailors, and manage your fashion journey from measurement to delivery.</div>
+              <div className="card-perks">
+                <div className="perk"><div className="perk-dot"></div>AI style recommendations from your fabric</div>
+                <div className="perk"><div className="perk-dot"></div>Browse & book verified tailors</div>
+                <div className="perk"><div className="perk-dot"></div>Save measurements & style history</div>
+                <div className="perk"><div className="perk-dot"></div>Track orders in real-time</div>
+              </div>
+            </div>
+
+            <div className={`register-card ${selectedRole === "tailor" ? "selected" : ""}`}
+              onClick={() => handleRoleSelect("tailor")}>
+              {selectedRole === "tailor" && <div className="selected-badge">Selected</div>}
+              <div className="card-icon">✂️</div>
+              <div className="card-title">I'm a Tailor</div>
+              <div className="card-desc">Showcase your craft, use AI tools to grow your business, and connect with customers who need your skills.</div>
+              <div className="card-perks">
+                <div className="perk"><div className="perk-dot"></div>AI-powered style & pattern generator</div>
+                <div className="perk"><div className="perk-dot"></div>Sewing assistant & tutorial finder</div>
+                <div className="perk"><div className="perk-dot"></div>Smart measurement calculator</div>
+                <div className="perk"><div className="perk-dot"></div>Earnings dashboard & order management</div>
+              </div>
+            </div>
+          </div>
+
+          {selectedRole && (
+            <div id="reg-form">
+              <RegisterForm role={selectedRole} key={selectedRole} />
+            </div>
+          )}
+        </section>
+
+        {/* AI SECTION */}
+        <section className="ai-section" id="styles">
+          <div className="ai-container">
+            <div className="section-header" style={{marginBottom:48}}>
+              <div className="section-tag">Powered by Claude AI</div>
+              <h2 className="section-title">Generate Your <em>Perfect Style</em></h2>
+            </div>
+            <AIStyleGenerator />
+          </div>
+        </section>
+
+        {/* TAILORS */}
+        <section className="tailors-section" id="tailors">
+          <div style={{maxWidth:1000,margin:"0 auto"}}>
+            <div className="section-header">
+              <div className="section-tag">Verified Professionals</div>
+              <h2 className="section-title">Top <em>Tailors</em> Near You</h2>
+            </div>
+            <div className="tailors-grid">
+              {SAMPLE_TAILORS.map(t => (
+                <div key={t.id} className="tailor-card">
+                  <div className="tailor-avatar">{t.emoji}</div>
+                  <div className="tailor-name">{t.name}</div>
+                  <div className="tailor-location">📍 {t.location}</div>
+                  <div className="tailor-stars">{t.rating}</div>
+                  <div className="tailor-spec">Specialty: <span>{t.specialty}</span></div>
+                  <div className="tailor-price">Starting from <strong>{t.price}</strong></div>
+                  <button className="gen-btn" style={{marginTop:16,borderRadius:2}}>View Profile</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FOOTER */}
+        <footer className="footer">
+          <div>
+            <div className="footer-logo">FITGENIUS</div>
+            <div className="footer-tagline">The AI fashion ecosystem for Africa</div>
+          </div>
+          <div className="footer-links">
+            <span className="footer-link">About</span>
+            <span className="footer-link">Privacy</span>
+            <span className="footer-link">Terms</span>
+            <span className="footer-link">Contact</span>
+          </div>
+        </footer>
+      </div>
+
+      {showToast && <div className="toast">Style saved to your profile! ✦</div>}
+    </>
+  );
+}
